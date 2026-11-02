@@ -261,6 +261,24 @@ code { font-size: .9em; background: rgba(0,0,0,.08); padding: .1em .35em; border
 .dual-range input[type="range"]:focus-visible::-moz-range-thumb { outline: 3px solid var(--bart); outline-offset: 2px; }
 
 .presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 22px; }
+.rating-filter { margin-bottom: 16px; padding-top: 14px; border-top: 2px dashed rgba(31, 26, 23, .25); }
+.rating-filter summary { list-style: none; cursor: pointer; }
+.rating-filter summary::-webkit-details-marker { display: none; }
+.rating-filter summary:focus-visible { outline: 3px solid var(--marge); outline-offset: 4px; border-radius: 8px; }
+.rating-filter summary { align-items: center; }
+.chevron {
+  flex: 0 0 auto;
+  margin-right: auto;
+  width: 12px; height: 12px;
+  border-right: 3px solid var(--ink);
+  border-bottom: 3px solid var(--ink);
+  transform: translateY(-3px) rotate(45deg);
+  transition: transform .2s;
+}
+.rating-filter[open] .chevron { transform: translateY(3px) rotate(-135deg); }
+.rating-filter:not([open]) .range-label { font-size: 1.4rem; }
+.match-count { margin: -6px 0 14px; text-align: center; font-weight: 800; color: var(--muted); }
+.match-count.is-empty { color: var(--bart); }
 
 .chip {
   font: inherit;
@@ -545,6 +563,8 @@ code { font-size: .9em; background: rgba(0,0,0,.08); padding: .1em .35em; border
 
 @media (max-width: 520px) {
   .topbar { justify-content: center; position: relative; }
+  .picker-head h2 { font-size: 1.35rem; white-space: nowrap; }
+  .range-label, .rating-filter:not([open]) .range-label { font-size: 1.4rem; }
   .pager { flex-direction: column; }
   .pager .btn { max-width: 100%; }
 }

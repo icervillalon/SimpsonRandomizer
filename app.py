@@ -51,13 +51,19 @@ def data_unavailable(err):
 @app.get("/")
 def index():
     first, last = season_bounds()
+    episodes = catalog.episodes()
+    ratings = [e.rating for e in episodes if e.rating]
     return render_template(
         "index.html",
         first_season=first,
         last_season=last,
-        total=len(catalog.episodes()),
+        total=len(episodes),
         season_from=request.args.get("desde", first, type=int),
         season_to=request.args.get("hasta", last, type=int),
+        min_rating=request.args.get("nota", 0, type=float),
+        max_rating=max(ratings, default=10),
+        # [temporada, nota] de cada capítulo, para contar en vivo cuántos cumplen los filtros
+        episode_ratings=[[e.season, e.rating or 0] for e in episodes],
     )
 
 
@@ -77,9 +83,13 @@ def episode_page(season: int, number: int):
 @app.get("/api/aleatorio")
 def api_random():
     first, last = season_bounds()
-    ep = catalog.random(request.args.get("desde", first, type=int), request.args.get("hasta", last, type=int))
+    ep = catalog.random(
+        request.args.get("desde", first, type=int),
+        request.args.get("hasta", last, type=int),
+        request.args.get("nota", 0, type=float),
+    )
     if ep is None:
-        return jsonify(error="No hay capítulos en ese rango de temporadas."), 404
+        return jsonify(error="No hay capítulos con esos filtros."), 404
     return jsonify(episode_payload(ep))
 
 

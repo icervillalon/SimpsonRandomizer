@@ -9,7 +9,9 @@ function recall(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
 }
 
-/* ---------- Selector de temporadas ---------- */
+/* ---------- Filtros: temporadas y nota mínima ---------- */
+
+const formatRating = (n) => n.toFixed(1).replace(".", ",");
 
 function setupPicker(picker) {
   const first = Number(picker.dataset.first);
@@ -18,24 +20,41 @@ function setupPicker(picker) {
   const toInput = document.getElementById("season-to");
   const label = document.getElementById("range-label");
   const fill = document.getElementById("range-fill");
-  const chips = picker.querySelectorAll(".presets .chip");
+  const chips = picker.querySelectorAll("#season-presets .chip");
 
-  // Si la URL no fija el rango, recupera el último usado.
+  const ratingInput = document.getElementById("min-rating");
+  const ratingLabel = document.getElementById("rating-label");
+  const ratingFill = document.getElementById("rating-fill");
+  const ratingChips = picker.querySelectorAll("#rating-presets .chip");
+  const ratingFloor = Number(ratingInput.min);
+  const ratingCeil = Number(ratingInput.max);
+  const countLabel = document.getElementById("match-count");
+  const spinButton = document.getElementById("spin");
+  const episodeRatings = JSON.parse(document.getElementById("episode-ratings").textContent);
+
+  // Si la URL no fija los filtros, recupera los últimos usados.
   const params = new URLSearchParams(location.search);
   const saved = recall(STORAGE_KEY);
   if (!params.has("desde") && saved) {
     fromInput.value = saved.from;
     toInput.value = saved.to;
   }
+  if (!params.has("nota") && saved?.rating) ratingInput.value = saved.rating;
 
-  function range() {
+  function filters() {
     const a = Number(fromInput.value);
     const b = Number(toInput.value);
-    return { from: Math.min(a, b), to: Math.max(a, b) };
+    const value = Number(ratingInput.value);
+    // El extremo izquierdo significa "sin filtro", incluidos los capítulos sin nota.
+    const rating = value <= ratingFloor ? 0 : value;
+    const from = Math.min(a, b);
+    const to = Math.max(a, b);
+    const count = episodeRatings.filter(([s, r]) => s >= from && s <= to && (!rating || r >= rating)).length;
+    return { from, to, rating, count };
   }
 
   function render() {
-    const { from, to } = range();
+    const { from, to, rating, count } = filters();
     const span = last - first || 1;
     fill.style.left = `${((from - first) / span) * 100}%`;
     fill.style.right = `${((last - to) / span) * 100}%`;
@@ -43,7 +62,21 @@ function setupPicker(picker) {
     chips.forEach((chip) => {
       chip.classList.toggle("is-active", Number(chip.dataset.from) === from && Number(chip.dataset.to) === to);
     });
-    store(STORAGE_KEY, { from, to });
+
+    const ratingSpan = ratingCeil - ratingFloor || 1;
+    ratingFill.style.left = `${((Number(ratingInput.value) - ratingFloor) / ratingSpan) * 100}%`;
+    ratingFill.style.right = "0";
+    ratingLabel.textContent = rating ? `★ ${formatRating(rating)}+` : "Cualquiera";
+    ratingChips.forEach((chip) => {
+      const chipRating = Number(chip.dataset.rating);
+      chip.classList.toggle("is-active", (chipRating <= ratingFloor ? 0 : chipRating) === rating);
+    });
+
+    countLabel.textContent = count === 1 ? "1 capítulo posible"
+      : count ? `${count} capítulos posibles` : "Ningún capítulo cumple estos filtros";
+    countLabel.classList.toggle("is-empty", count === 0);
+    spinButton.disabled = count === 0;
+    store(STORAGE_KEY, { from, to, rating });
   }
 
   // El pulgar que esté encima recibe el clic: subimos el que se ha movido.
@@ -56,8 +89,14 @@ function setupPicker(picker) {
     render();
   }));
 
+  ratingInput.addEventListener("input", render);
+  ratingChips.forEach((chip) => chip.addEventListener("click", () => {
+    ratingInput.value = chip.dataset.rating;
+    render();
+  }));
+
   render();
-  return range;
+  return filters;
 }
 
 /* ---------- Ruleta ---------- */
@@ -65,18 +104,18 @@ function setupPicker(picker) {
 function setupRoulette() {
   const picker = document.getElementById("picker");
   if (!picker) return;
-  const getRange = setupPicker(picker);
+  const getFilters = setupPicker(picker);
   const button = document.getElementById("spin");
   const result = document.getElementById("result");
   const template = document.getElementById("episode-template");
 
   async function spin() {
-    const { from, to } = getRange();
+    const { from, to, rating } = getFilters();
     button.disabled = true;
     button.classList.add("is-spinning");
     const minDelay = new Promise((r) => setTimeout(r, 650));
     try {
-      const resp = await fetch(`/api/aleatorio?desde=${from}&hasta=${to}`);
+      const resp = await fetch(`/api/aleatorio?desde=${from}&hasta=${to}&nota=${rating}`);
       const data = await resp.json();
       await minDelay;
       if (!resp.ok) throw new Error(data.error || "Error al buscar un capítulo");
@@ -90,7 +129,7 @@ function setupRoulette() {
       p.textContent = `¡D'oh! ${err.message}`;
       result.replaceChildren(p);
     } finally {
-      button.disabled = false;
+      button.disabled = getFilters().count === 0;
       button.classList.remove("is-spinning");
     }
   }
@@ -139,7 +178,7 @@ function renderEpisode(template, ep) {
   const meta = [];
   if (ep.air_date_es) meta.push(`Emitido el ${ep.air_date_es}`);
   if (ep.runtime) meta.push(`${ep.runtime} min`);
-  if (ep.rating) meta.push(`★ ${ep.rating.toFixed(1)}`);
+  if (ep.rating) meta.push(`★ ${formatRating(ep.rating)}`);
   meta.forEach((text) => field("meta").append(Object.assign(document.createElement("li"), { textContent: text })));
 
   field("overview").textContent = ep.overview || "Sin sinopsis.";

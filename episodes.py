@@ -303,9 +303,12 @@ class Catalog:
         i = episodes.index(ep)
         return (episodes[i - 1] if i > 0 else None, episodes[i + 1] if i + 1 < len(episodes) else None)
 
-    def random(self, season_from: int, season_to: int) -> Episode | None:
+    def random(self, season_from: int, season_to: int, min_rating: float = 0) -> Episode | None:
         lo, hi = sorted((season_from, season_to))
-        pool = [e for e in self.episodes() if lo <= e.season <= hi]
+        pool = [
+            e for e in self.episodes()
+            if lo <= e.season <= hi and (not min_rating or (e.rating or 0) >= min_rating)
+        ]
         return random.choice(pool) if pool else None
 
     def stills(self, ep: Episode) -> list[str]:

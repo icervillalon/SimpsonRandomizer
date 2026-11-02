@@ -19,6 +19,6 @@
 <ul class="meta">
   {% if ep.air_date %}<li>Emitido el {{ ep.air_date_es }}</li>{% endif %}
   {% if ep.runtime %}<li>{{ ep.runtime }} min</li>{% endif %}
-  {% if ep.rating %}<li>★ {{ "%.1f"|format(ep.rating) }}</li>{% endif %}
+  {% if ep.rating %}<li>★ {{ ("%.1f"|format(ep.rating)).replace('.', ',') }}</li>{% endif %}
 </ul>
 {%- endmacro %}

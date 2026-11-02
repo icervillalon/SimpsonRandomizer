@@ -1,12 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <path fill-rule="evenodd" d="M32 3a29 29 0 1 1 0 58a29 29 0 1 1 0-58zM32 22a9 9 0 1 0 0 18a9 9 0 1 0 0-18z"
+  <defs>
+    <mask id="hole">
+      <rect width="64" height="64" fill="#fff"/>
+      <circle cx="32" cy="32" r="10" fill="#000"/>
+    </mask>
+  </defs>
+  <!-- masa -->
+  <path fill-rule="evenodd" d="M32 3a29 29 0 1 1 0 58a29 29 0 1 1 0-58zM32 22a10 10 0 1 0 0 20a10 10 0 1 0 0-20z"
         fill="#e8a65a" stroke="#3b2414" stroke-width="3"/>
-  <path fill-rule="evenodd" d="M32 7c12 0 24 9 24 23 0 4-3 5-5 3-2 4-6 2-7 5-2 3-6 1-8 4-3 2-6-1-9 1-3 2-6-2-9-1-3 0-5-4-8-3-3 0-5-4-4-8C6 17 19 7 32 7zM32 21a10 10 0 1 0 0 20a10 10 0 1 0 0-20z"
-        fill="#ff7eb6" stroke="#3b2414" stroke-width="2.5" stroke-linejoin="round"/>
-  <g stroke-width="3" stroke-linecap="round">
-    <path d="M18 18l4 2" stroke="#ffd90f"/><path d="M44 15l-3 3" stroke="#5fb8f0"/>
-    <path d="M48 28l-1 4" stroke="#fff"/><path d="M15 30l3 3" stroke="#7ad151"/>
-    <path d="M29 13l3 1" stroke="#fff"/><path d="M43 42l3 2" stroke="#ffd90f"/>
-    <path d="M20 41l2-3" stroke="#5fb8f0"/>
+  <!-- glaseado: toda la mitad superior-->
+  <path mask="url(#hole)" fill="#ff7eb6" stroke="#3b2414" stroke-width="2.5" stroke-linejoin="round"
+        d="M3.3 36A29 29 0 1 1 60.7 36
+           C58 41 54 44 51 41
+           C49 39 47 36 44 37
+           C41 38 40 44 37 45
+           C34 46 33 44 30 44
+           C27 44 26 47 22 46
+           C18 45 19 40 15 40
+           C11 40 8 44 5 41Z"/>
+  <circle cx="32" cy="32" r="10" fill="none" stroke="#3b2414" stroke-width="2.5"/>
+  <!-- virutas -->
+  <g stroke-width="2.6" stroke-linecap="round">
+    <path d="M15 22l4 2" stroke="#ffd90f"/>
+    <path d="M22 13l4-1" stroke="#fff"/>
+    <path d="M36 10l4 2" stroke="#5fb8f0"/>
+    <path d="M46 15l1 4" stroke="#7ad151"/>
+    <path d="M50 27l4-1" stroke="#fff"/>
+    <path d="M10 31l2 4" stroke="#5fb8f0"/>
+    <path d="M29 16l4 1" stroke="#ffd90f"/>
+    <path d="M45 30l1 3" stroke="#ffd90f"/>
+    <path d="M18 31l1 4" stroke="#fff"/>
   </g>
 </svg>

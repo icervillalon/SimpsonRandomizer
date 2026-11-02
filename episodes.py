@@ -14,6 +14,7 @@ import random
 import re
 import threading
 import time
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
 from datetime import date
@@ -32,6 +33,7 @@ TMDB_IMAGES = "https://image.tmdb.org/t/p"
 TMDB_SHOW_ID = 456
 TVMAZE_SHOW_ID = 83
 DISNEY_SERIES_URL = "https://www.disneyplus.com/{locale}/browse/entity-cac75c8f-a9e2-4d95-ac73-1cf1cc7b9568"
+DISNEY_URL_RE = re.compile(r"^https://www\.disneyplus\.com/[\w\-/]+$")
 
 USER_AGENT = "SimpsonRandomizer/1.0"
 
@@ -230,16 +232,56 @@ class Catalog:
                     raise
                 raw = cached["episodes"]  # sin conexión: mejor datos viejos que nada
 
-        overrides = {k: v for k, v in (_read_json(DISNEY_LINKS_FILE) or {}).items() if not k.startswith("_")}
-        episodes = []
-        for data in raw:
-            ep = Episode(**{**data, "disney_url": "", "disney_direct": False})
-            ep.disney_direct = bool(overrides.get(ep.code))
-            ep.disney_url = overrides.get(ep.code) or self.disney_series_url
-            episodes.append(ep)
+        episodes = [Episode(**{**data, "disney_url": "", "disney_direct": False}) for data in raw]
         episodes.sort(key=lambda e: (e.season, e.number))
         self._episodes = episodes
         self._index = {(e.season, e.number): e for e in episodes}
+        self._apply_disney_links()
+
+    def _apply_disney_links(self) -> None:
+        links = _load_disney_links()
+        for ep in self._episodes:
+            ep.disney_direct = bool(links.get(ep.code))
+            ep.disney_url = links.get(ep.code) or self.disney_series_url
+
+    def save_disney_links(self, items: list[dict]) -> dict:
+        """Guarda enlaces a capítulos capturados en Disney+ por el userscript.
+
+        Cada elemento trae season, number, title y url. Se busca primero por
+        título (por si Disney+ numera algún capítulo distinto que TMDB) y, si
+        no hay una coincidencia única, por temporada y número.
+        """
+        by_title: dict[str, list[Episode]] = {}
+        for ep in self.episodes():
+            by_title.setdefault(_normalize(ep.title), []).append(ep)
+
+        saved, rejected = [], 0
+        with self._lock:
+            data = _read_json(DISNEY_LINKS_FILE) or {}
+            for item in items:
+                url = str(item.get("url", "")).split("?")[0]
+                if not DISNEY_URL_RE.match(url):
+                    rejected += 1
+                    continue
+                matches = by_title.get(_normalize(str(item.get("title", ""))), [])
+                if len(matches) == 1:
+                    ep = matches[0]
+                else:
+                    try:
+                        ep = self._index.get((int(item["season"]), int(item["number"])))
+                    except (KeyError, TypeError, ValueError):
+                        ep = None
+                if ep is None:
+                    rejected += 1
+                    continue
+                if data.get(ep.code) != url:
+                    data[ep.code] = url
+                    saved.append(ep.code)
+            if saved:
+                _write_json(DISNEY_LINKS_FILE, dict(sorted(data.items(), key=lambda kv: (not kv[0].startswith("_"), kv[0]))), indent=2)
+                self._apply_disney_links()
+            total = sum(1 for ep in self._episodes if ep.disney_direct)
+        return {"saved": saved, "rejected": rejected, "total": total, "episodes": len(self._episodes)}
 
     # --- consultas ---------------------------------------------------------
 
@@ -286,11 +328,21 @@ def _read_json(path: Path):
         return None
 
 
-def _write_json(path: Path, data) -> None:
+def _write_json(path: Path, data, indent: int | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=indent), encoding="utf-8")
     tmp.replace(path)
+
+
+def _load_disney_links() -> dict[str, str]:
+    data = _read_json(DISNEY_LINKS_FILE) or {}
+    return {k: v for k, v in data.items() if not k.startswith("_") and v}
+
+
+def _normalize(text: str) -> str:
+    text = unicodedata.normalize("NFD", text.lower())
+    return re.sub(r"[^a-z0-9]", "", "".join(c for c in text if not unicodedata.combining(c)))
 
 
 def build_catalog() -> Catalog:

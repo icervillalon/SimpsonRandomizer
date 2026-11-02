@@ -58,6 +58,7 @@
   <footer class="footer">
     <p>Datos de {{ source_label }}.{% if source_name == 'tmdb' %} Este producto usa la API de TMDB, pero no está respaldado ni certificado por TMDB.{% endif %}</p>
     <p>Proyecto personal sin relación con Disney, 20th Television ni Gracie Films.</p>
+    <p><a href="{{ url_for('static', filename='simpson-randomizer.user.js') }}">Instalar el script de enlaces de Disney+</a></p>
   </footer>
 
   <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>

@@ -89,6 +89,22 @@ def api_episode(season: int, number: int):
     return jsonify(episode_payload(ep))
 
 
+@app.get("/api/disney-links")
+def api_disney_links_status():
+    """Lo consulta el userscript para comprobar que la app está arrancada."""
+    episodes = catalog.episodes()
+    return jsonify(total=sum(1 for e in episodes if e.disney_direct), episodes=len(episodes))
+
+
+@app.post("/api/disney-links")
+def api_disney_links():
+    """Recibe los enlaces que captura el userscript mientras navegas por Disney+."""
+    items = request.get_json(silent=True)
+    if not isinstance(items, list) or not all(isinstance(i, dict) for i in items):
+        return jsonify(error="Se esperaba una lista de capítulos."), 400
+    return jsonify(catalog.save_disney_links(items))
+
+
 @app.errorhandler(404)
 def not_found(_):
     return render_template("error.html", error=None, not_found=True), 404

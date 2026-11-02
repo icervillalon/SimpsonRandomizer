@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "macros.html" import disney_button, disney_note, meta_list %}
+
+{% block title %}{{ ep.title }} · Simpson Randomizer{% endblock %}
+
+{% block content %}
+<nav class="crumbs">
+  <a class="chip" href="{{ url_for('catalog_page') }}#temporada-{{ ep.season }}">← Temporada {{ ep.season }}</a>
+</nav>
+
+<article class="panel episode-card">
+  <div class="episode-media">
+    <div class="gallery" data-gallery>
+      {% if stills %}
+      <img class="gallery-main" src="{{ stills[0] }}" alt="Captura de «{{ ep.title }}»">
+      {% if stills|length > 1 %}
+      <div class="gallery-thumbs">
+        {% for still in stills %}
+        <button type="button" class="thumb{% if loop.first %} is-active{% endif %}" data-src="{{ still }}" aria-label="Captura {{ loop.index }}">
+          <img src="{{ still|replace('/w1280/', '/w300/') }}" alt="" loading="lazy">
+        </button>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="gallery-empty">Sin capturas</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="episode-info">
+    <p class="badge">Temporada {{ ep.season }} · Episodio {{ ep.number }}</p>
+    <h1 class="episode-title">{{ ep.title }}</h1>
+    {% if ep.original_title != ep.title %}<p class="original-title">Título original: {{ ep.original_title }}</p>{% endif %}
+    {{ meta_list(ep) }}
+    <p class="overview">{{ ep.overview or "Sin sinopsis." }}</p>
+    {% if ep.overview and not ep.overview_translated and source_name == 'tmdb' %}
+    <p class="overview-note">Sinopsis no disponible en español.</p>
+    {% endif %}
+    <div class="actions">
+      {{ disney_button(ep.disney_url) }}
+      <a class="btn btn-ghost" href="{{ url_for('index') }}">Ruleta</a>
+    </div>
+    {{ disney_note(ep) }}
+  </div>
+</article>
+
+<nav class="pager">
+  {% if prev_ep %}<a class="btn btn-ghost" href="{{ url_for('episode_page', season=prev_ep.season, number=prev_ep.number) }}">← {{ prev_ep.title }}</a>{% else %}<span></span>{% endif %}
+  {% if next_ep %}<a class="btn btn-ghost" href="{{ url_for('episode_page', season=next_ep.season, number=next_ep.number) }}">{{ next_ep.title }} →</a>{% endif %}
+</nav>
+{% endblock %}

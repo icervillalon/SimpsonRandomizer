@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% from "macros.html" import wobbly, disney_button %}
+
+{% block title %}Todos los capítulos · Simpson Randomizer{% endblock %}
+
+{% block content %}
+<section class="hero hero-small">
+  <h1 class="logo-title">{{ wobbly("Todos los capítulos") }}</h1>
+  <p class="hero-sub">{{ total }} capítulos en {{ seasons|length }} temporadas.</p>
+</section>
+
+<div class="catalog-tools panel">
+  <label class="search">
+    <span class="visually-hidden">Buscar capítulo</span>
+    <input type="search" id="search" placeholder="Buscar por título o sinopsis…" autocomplete="off">
+  </label>
+  <nav class="season-chips" aria-label="Ir a temporada">
+    {% for season in seasons %}<a class="chip" href="#temporada-{{ season }}">{{ season }}</a>{% endfor %}
+  </nav>
+  <p class="search-empty" id="search-empty" hidden>Ningún capítulo coincide. ¡Ay, caramba!</p>
+</div>
+
+{% for season, episodes in seasons.items() %}
+<section class="season" id="temporada-{{ season }}" data-season>
+  <h2 class="season-title"><span>Temporada {{ season }}</span> <small>{{ episodes|length }} capítulos</small></h2>
+  <div class="grid">
+    {% for ep in episodes %}
+    <article class="mini-card" data-search="{{ (ep.title ~ ' ' ~ ep.original_title ~ ' ' ~ ep.overview)|lower }}">
+      <a class="mini-thumb" href="{{ url_for('episode_page', season=ep.season, number=ep.number) }}">
+        {% if ep.thumb %}<img src="{{ ep.thumb }}" alt="" loading="lazy" width="300" height="169">{% endif %}
+        <span class="badge">T{{ ep.season }} · E{{ ep.number }}</span>
+      </a>
+      <div class="mini-body">
+        <h3><a href="{{ url_for('episode_page', season=ep.season, number=ep.number) }}">{{ ep.title }}</a></h3>
+        {% if ep.original_title != ep.title %}<p class="original-title">{{ ep.original_title }}</p>{% endif %}
+        <p class="mini-date">{{ ep.air_date_es }}</p>
+        <p class="mini-overview">{{ ep.overview }}</p>
+        {{ disney_button(ep.disney_url) }}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

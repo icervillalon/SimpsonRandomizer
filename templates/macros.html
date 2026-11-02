@@ -1,0 +1,24 @@
+{# Letras bailonas, como el rótulo de la serie #}
+{% macro wobbly(text) -%}
+<span class="wobbly">{% for word in text.split(' ') %}<span class="wobbly-word">{% for ch in word %}<span style="--i: {{ loop.index }}">{{ ch }}</span>{% endfor %}</span>{% if not loop.last %} {% endif %}{% endfor %}</span>
+{%- endmacro %}
+
+{% macro disney_button(url) -%}
+<a class="btn btn-disney" href="{{ url }}" target="_blank" rel="noopener" data-field="disney">
+  <span>Ver en</span> <strong>Disney+</strong>
+</a>
+{%- endmacro %}
+
+{% macro disney_note(ep) -%}
+{% if not ep.disney_direct %}
+<p class="disney-note">Disney+ no tiene enlaces públicos por capítulo: el botón abre la serie, elige la <strong>temporada {{ ep.season }}</strong> y el <strong>episodio {{ ep.number }}</strong>.</p>
+{% endif %}
+{%- endmacro %}
+
+{% macro meta_list(ep) -%}
+<ul class="meta">
+  {% if ep.air_date %}<li>Emitido el {{ ep.air_date_es }}</li>{% endif %}
+  {% if ep.runtime %}<li>{{ ep.runtime }} min</li>{% endif %}
+  {% if ep.rating %}<li>★ {{ "%.1f"|format(ep.rating) }}</li>{% endif %}
+</ul>
+{%- endmacro %}

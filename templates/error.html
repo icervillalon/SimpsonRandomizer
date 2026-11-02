@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "macros.html" import wobbly %}
+
+{% block content %}
+<section class="hero">
+  <h1 class="logo-title">{{ wobbly("¡Mosquis!") }}</h1>
+  {% if not_found %}
+  <p class="hero-sub">Ese capítulo no existe (todavía).</p>
+  {% else %}
+  <p class="hero-sub">No se pudo descargar la lista de capítulos. Revisa tu conexión o la clave de TMDB y vuelve a intentarlo.</p>
+  {% if error %}<p class="error-detail"><code>{{ error }}</code></p>{% endif %}
+  {% endif %}
+  <p><a class="btn btn-ghost" href="{{ url_for('index') }}">Volver a la ruleta</a></p>
+</section>
+{% endblock %}

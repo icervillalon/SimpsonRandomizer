@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "macros.html" import wobbly, disney_button %}
+
+{% block content %}
+<section class="hero">
+  <h1 class="logo-title">{{ wobbly("¿Qué capítulo") }}<br>{{ wobbly("vemos hoy?") }}</h1>
+  <p class="hero-sub">Elige las temporadas y deja que la ruleta decida entre {{ total }} capítulos.</p>
+</section>
+
+<section class="panel picker" id="picker"
+         data-first="{{ first_season }}" data-last="{{ last_season }}"
+         data-from="{{ season_from }}" data-to="{{ season_to }}">
+  <div class="picker-head">
+    <h2>Temporadas</h2>
+    <output class="range-label" id="range-label" aria-live="polite">
+      {{ season_from }} – {{ season_to }}
+    </output>
+  </div>
+
+  <div class="dual-range" style="--min: {{ first_season }}; --max: {{ last_season }}">
+    <div class="dual-range-track"><div class="dual-range-fill" id="range-fill"></div></div>
+    <input type="range" id="season-from" min="{{ first_season }}" max="{{ last_season }}" value="{{ season_from }}" aria-label="Desde la temporada">
+    <input type="range" id="season-to" min="{{ first_season }}" max="{{ last_season }}" value="{{ season_to }}" aria-label="Hasta la temporada">
+  </div>
+
+  <div class="presets" role="group" aria-label="Rangos rápidos">
+    <button type="button" class="chip" data-from="1" data-to="{{ [10, last_season]|min }}">Época dorada (1–10)</button>
+    <button type="button" class="chip" data-from="{{ [11, last_season]|min }}" data-to="{{ [20, last_season]|min }}">11–20</button>
+    <button type="button" class="chip" data-from="{{ [21, last_season]|min }}" data-to="{{ last_season }}">21–{{ last_season }}</button>
+    <button type="button" class="chip" data-from="{{ first_season }}" data-to="{{ last_season }}">Todas</button>
+  </div>
+
+  <button type="button" class="btn-spin" id="spin">
+    <img src="{{ url_for('static', filename='img/donut.svg') }}" alt="" width="44" height="44">
+    <span>¡Dame un capítulo!</span>
+  </button>
+</section>
+
+<section id="result" class="result" aria-live="polite"></section>
+
+<template id="episode-template">
+  <article class="panel episode-card">
+    <div class="episode-media">
+      <div class="gallery" data-gallery>
+        <img class="gallery-main" data-field="image" alt="">
+        <div class="gallery-thumbs" data-field="thumbs"></div>
+      </div>
+    </div>
+    <div class="episode-info">
+      <p class="badge" data-field="badge"></p>
+      <h2 class="episode-title" data-field="title"></h2>
+      <p class="original-title" data-field="original"></p>
+      <ul class="meta" data-field="meta"></ul>
+      <p class="overview" data-field="overview"></p>
+      <p class="overview-note" data-field="overview-note" hidden>Sinopsis no disponible en español.</p>
+      <div class="actions">
+        {{ disney_button("#") }}
+        <a class="btn btn-ghost" data-field="detail" href="#">Ver ficha</a>
+        <button type="button" class="btn btn-ghost" data-action="respin">Otro</button>
+      </div>
+      <p class="disney-note" data-field="disney-note"></p>
+    </div>
+  </article>
+</template>
+{% endblock %}

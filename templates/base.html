@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Simpson Randomizer{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/donut.svg') }}" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body data-source="{{ source_name }}">
+  {# Cielo con nubes, como en la cabecera de la serie #}
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="cloud" viewBox="0 0 240 120">
+      <g fill="#cfe9fb">
+        <circle cx="62" cy="78" r="34"/><circle cx="108" cy="58" r="44"/><circle cx="160" cy="66" r="38"/>
+        <circle cx="198" cy="86" r="26"/><rect x="34" y="78" width="184" height="36" rx="18"/>
+      </g>
+      <g fill="#fff">
+        <circle cx="62" cy="72" r="32"/><circle cx="108" cy="52" r="42"/><circle cx="160" cy="60" r="36"/>
+        <circle cx="198" cy="80" r="24"/><rect x="36" y="72" width="180" height="34" rx="17"/>
+      </g>
+    </symbol>
+  </svg>
+  <div class="sky" aria-hidden="true">
+    <svg class="cloud c1"><use href="#cloud"/></svg>
+    <svg class="cloud c2"><use href="#cloud"/></svg>
+    <svg class="cloud c3"><use href="#cloud"/></svg>
+    <svg class="cloud c4"><use href="#cloud"/></svg>
+    <svg class="cloud c5"><use href="#cloud"/></svg>
+    <svg class="cloud c6"><use href="#cloud"/></svg>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/donut.svg') }}" alt="" width="40" height="40">
+      <span>Simpson Randomizer</span>
+    </a>
+    <nav class="nav">
+      <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}aria-current="page"{% endif %}>Ruleta</a>
+      <a href="{{ url_for('catalog_page') }}" {% if request.endpoint in ('catalog_page', 'episode_page') %}aria-current="page"{% endif %}>Todos los capítulos</a>
+    </nav>
+  </header>
+
+  {% if source_name == 'tvmaze' %}
+  <div class="notice">
+    Sin clave de TMDB los textos salen en inglés y hay una sola captura por capítulo.
+    Añade <code>TMDB_API_KEY</code> en el archivo <code>.env</code> para tenerlo todo en español.
+  </div>
+  {% endif %}
+
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <p>Datos de {{ source_label }}.{% if source_name == 'tmdb' %} Este producto usa la API de TMDB, pero no está respaldado ni certificado por TMDB.{% endif %}</p>
+    <p>Proyecto personal sin relación con Disney, 20th Television ni Gracie Films.</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>

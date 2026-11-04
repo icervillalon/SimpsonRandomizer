@@ -1,0 +1,45 @@
+{# Filtros de temporadas y nota mínima (los usan «Al azar» y la ruleta). #}
+  <div class="picker-head">
+    <h2>Temporadas</h2>
+    <output class="range-label" id="range-label" aria-live="polite">
+      {{ season_from }} – {{ season_to }}
+    </output>
+  </div>
+
+  <div class="dual-range" style="--min: {{ first_season }}; --max: {{ last_season }}">
+    <div class="dual-range-track"><div class="dual-range-fill" id="range-fill"></div></div>
+    <input type="range" id="season-from" min="{{ first_season }}" max="{{ last_season }}" value="{{ season_from }}" aria-label="Desde la temporada">
+    <input type="range" id="season-to" min="{{ first_season }}" max="{{ last_season }}" value="{{ season_to }}" aria-label="Hasta la temporada">
+  </div>
+
+  <div class="presets" id="season-presets" role="group" aria-label="Rangos rápidos">
+    <button type="button" class="chip" data-from="1" data-to="{{ [10, last_season]|min }}">Época dorada (1–10)</button>
+    <button type="button" class="chip" data-from="{{ [11, last_season]|min }}" data-to="{{ [20, last_season]|min }}">11–20</button>
+    <button type="button" class="chip" data-from="{{ [21, last_season]|min }}" data-to="{{ last_season }}">21–{{ last_season }}</button>
+    <button type="button" class="chip" data-from="{{ first_season }}" data-to="{{ last_season }}">Todas</button>
+  </div>
+
+  {% set rating_floor = 5 %}
+  {% set rating_ceil = (max_rating * 10)|round(0, 'floor') / 10 %}
+  <details class="rating-filter" id="rating-filter">
+  <summary class="picker-head">
+    <h2>Nota mínima</h2><span class="chevron" aria-hidden="true"></span>
+    <output class="range-label" id="rating-label" aria-live="polite">Cualquiera</output>
+  </summary>
+
+  <div class="dual-range" id="rating-range" data-floor="{{ rating_floor }}">
+    <div class="dual-range-track"><div class="dual-range-fill" id="rating-fill"></div></div>
+    <input type="range" id="min-rating" min="{{ rating_floor }}" max="{{ rating_ceil }}" step="0.1"
+           value="{{ [min_rating, rating_floor]|max }}" aria-label="Nota mínima del capítulo">
+  </div>
+
+  <div class="presets" id="rating-presets" role="group" aria-label="Notas rápidas">
+    <button type="button" class="chip" data-rating="{{ rating_floor }}">Cualquiera</button>
+    <button type="button" class="chip" data-rating="7">★ 7 o más</button>
+    <button type="button" class="chip" data-rating="7.5">★ 7,5 o más</button>
+    <button type="button" class="chip" data-rating="8">★ 8 o más</button>
+  </div>
+  </details>
+
+  <p class="match-count" id="match-count" aria-live="polite"></p>
+  <script type="application/json" id="episode-ratings">{{ episode_ratings|tojson }}</script>

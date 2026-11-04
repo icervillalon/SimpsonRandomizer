@@ -39,7 +39,8 @@
       <span>Simpson Randomizer</span>
     </a>
     <nav class="nav">
-      <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}aria-current="page"{% endif %}>Ruleta</a>
+      <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}aria-current="page"{% endif %}>Al azar</a>
+      <a href="{{ url_for('wheel_page') }}" {% if request.endpoint == 'wheel_page' %}aria-current="page"{% endif %}>Ruleta</a>
       <a href="{{ url_for('catalog_page') }}" {% if request.endpoint in ('catalog_page', 'episode_page') %}aria-current="page"{% endif %}>Todos los capítulos</a>
     </nav>
   </header>

@@ -1,0 +1,26 @@
+{% from "macros.html" import disney_button %}
+{# Ficha que rellena static/js/app.js con el capítulo elegido. #}
+<template id="episode-template">
+  <article class="panel episode-card">
+    <div class="episode-media">
+      <div class="gallery" data-gallery>
+        <img class="gallery-main" data-field="image" alt="">
+        <div class="gallery-thumbs" data-field="thumbs"></div>
+      </div>
+    </div>
+    <div class="episode-info">
+      <p class="badge" data-field="badge"></p>
+      <h2 class="episode-title" data-field="title"></h2>
+      <p class="original-title" data-field="original"></p>
+      <ul class="meta" data-field="meta"></ul>
+      <p class="overview" data-field="overview"></p>
+      <p class="overview-note" data-field="overview-note" hidden>Sinopsis no disponible en español.</p>
+      <div class="actions">
+        {{ disney_button("#") }}
+        <a class="btn btn-ghost" data-field="detail" href="#">Ver ficha</a>
+        <button type="button" class="btn btn-ghost" data-action="respin">Otro</button>
+      </div>
+      <p class="disney-note" data-field="disney-note"></p>
+    </div>
+  </article>
+</template>

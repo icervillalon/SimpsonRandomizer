@@ -1,6 +1,10 @@
 # SimpsonRandomizer
 
-Aplicación web ligera en Python (Flask) que elige un capítulo aleatorio de **Los Simpson** dentro del rango de temporadas que elijas y te muestra su título en español, capturas, sinopsis y un enlace para verlo en Disney+. También incluye un catálogo completo con buscador.
+Aplicación web ligera en Python (Flask) que elige un capítulo aleatorio de **Los Simpson** dentro del rango de temporadas y la nota mínima que elijas y te muestra su título en español, capturas, sinopsis y un enlace para verlo en Disney+. Tiene tres secciones:
+
+- **Al azar**: un capítulo al azar con un solo clic.
+- **Ruleta**: una rueda con 20 capítulos al azar (código corto, título y una captura en cada pala) que puedes girar para ver cuál sale.
+- **Todos los capítulos**: el catálogo completo con buscador.
 
 ## Puesta en marcha
 
@@ -90,7 +94,7 @@ El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 | Archivo | Qué hace |
 | --- | --- |
-| `app.py` | Servidor Flask: ruleta (`/`), catálogo (`/capitulos`), ficha (`/capitulo/<t>/<e>`) y API JSON (`/api/aleatorio`, `/api/disney-links`). |
+| `app.py` | Servidor Flask: al azar (`/`), ruleta (`/ruleta`), catálogo (`/capitulos`), ficha (`/capitulo/<t>/<e>`) y API JSON (`/api/aleatorio`, `/api/ruleta`, `/api/disney-links`). |
 | `episodes.py` | Descarga los capítulos desde TMDB o TVmaze, los guarda en caché y los consulta. |
 | `templates/` | Páginas HTML (Jinja). |
 | `static/` | Estilos, JavaScript y el icono del dónut. |

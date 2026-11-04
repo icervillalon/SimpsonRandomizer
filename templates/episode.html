@@ -38,7 +38,8 @@
     {% endif %}
     <div class="actions">
       {{ disney_button(ep.disney_url) }}
-      <a class="btn btn-ghost" href="{{ url_for('index') }}">Ruleta</a>
+      <a class="btn btn-ghost" href="{{ url_for('index') }}">Al azar</a>
+      <a class="btn btn-ghost" href="{{ url_for('wheel_page') }}">Ruleta</a>
     </div>
     {{ disney_note(ep) }}
   </div>

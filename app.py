@@ -48,23 +48,45 @@ def data_unavailable(err):
     return render_template("error.html", error=err), 503
 
 
-@app.get("/")
-def index():
+WHEEL_SIZE = 20
+
+
+def filters_context() -> dict:
+    """Variables que necesita el panel de filtros (templates/_filters.html)."""
     first, last = season_bounds()
+    season_from, season_to, min_rating = filter_args()
     episodes = catalog.episodes()
     ratings = [e.rating for e in episodes if e.rating]
-    return render_template(
-        "index.html",
+    return dict(
         first_season=first,
         last_season=last,
         total=len(episodes),
-        season_from=request.args.get("desde", first, type=int),
-        season_to=request.args.get("hasta", last, type=int),
-        min_rating=request.args.get("nota", 0, type=float),
+        season_from=season_from,
+        season_to=season_to,
+        min_rating=min_rating,
         max_rating=max(ratings, default=10),
         # [temporada, nota] de cada capítulo, para contar en vivo cuántos cumplen los filtros
         episode_ratings=[[e.season, e.rating or 0] for e in episodes],
     )
+
+
+def filter_args() -> tuple[int, int, float]:
+    first, last = season_bounds()
+    return (
+        request.args.get("desde", first, type=int),
+        request.args.get("hasta", last, type=int),
+        request.args.get("nota", 0, type=float),
+    )
+
+
+@app.get("/")
+def index():
+    return render_template("index.html", **filters_context())
+
+
+@app.get("/ruleta")
+def wheel_page():
+    return render_template("wheel.html", wheel_size=WHEEL_SIZE, **filters_context())
 
 
 @app.get("/capitulos")
@@ -82,15 +104,19 @@ def episode_page(season: int, number: int):
 
 @app.get("/api/aleatorio")
 def api_random():
-    first, last = season_bounds()
-    ep = catalog.random(
-        request.args.get("desde", first, type=int),
-        request.args.get("hasta", last, type=int),
-        request.args.get("nota", 0, type=float),
-    )
+    ep = catalog.random(*filter_args())
     if ep is None:
         return jsonify(error="No hay capítulos con esos filtros."), 404
     return jsonify(episode_payload(ep))
+
+
+@app.get("/api/ruleta")
+def api_wheel():
+    """Capítulos para las palas de la ruleta (sin capturas: el ganador se pide aparte)."""
+    episodes = catalog.sample(*filter_args(), count=WHEEL_SIZE)
+    if not episodes:
+        return jsonify(error="No hay capítulos con esos filtros."), 404
+    return jsonify([episode_payload(ep, with_stills=False) for ep in episodes])
 
 
 @app.get("/api/capitulo/<int:season>/<int:number>")

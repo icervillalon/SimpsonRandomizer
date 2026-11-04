@@ -1,4 +1,4 @@
-// Simpson Randomizer — interacción de la ruleta, galería y buscador.
+// Simpson Randomizer — capítulo al azar, ruleta, galería y buscador.
 
 const STORAGE_KEY = "simpson-randomizer:range";
 
@@ -13,7 +13,9 @@ function recall(key) {
 
 const formatRating = (n) => n.toFixed(1).replace(".", ",");
 
-function setupPicker(picker) {
+// `button` se desactiva si ningún capítulo cumple los filtros; `onChange` avisa
+// (con un pequeño retardo) cuando el usuario cambia algún filtro.
+function setupPicker(picker, { button, onChange } = {}) {
   const first = Number(picker.dataset.first);
   const last = Number(picker.dataset.last);
   const fromInput = document.getElementById("season-from");
@@ -29,7 +31,6 @@ function setupPicker(picker) {
   const ratingFloor = Number(ratingInput.min);
   const ratingCeil = Number(ratingInput.max);
   const countLabel = document.getElementById("match-count");
-  const spinButton = document.getElementById("spin");
   const episodeRatings = JSON.parse(document.getElementById("episode-ratings").textContent);
 
   // Si la URL no fija los filtros, recupera los últimos usados.
@@ -75,47 +76,56 @@ function setupPicker(picker) {
     countLabel.textContent = count === 1 ? "1 capítulo posible"
       : count ? `${count} capítulos posibles` : "Ningún capítulo cumple estos filtros";
     countLabel.classList.toggle("is-empty", count === 0);
-    spinButton.disabled = count === 0;
+    if (button) button.disabled = count === 0;
     store(STORAGE_KEY, { from, to, rating });
   }
 
+  let changeTimer = null;
+  function changed() {
+    render();
+    if (!onChange) return;
+    clearTimeout(changeTimer);
+    changeTimer = setTimeout(onChange, 600);
+  }
+
   // El pulgar que esté encima recibe el clic: subimos el que se ha movido.
-  fromInput.addEventListener("input", () => { fromInput.style.zIndex = 2; toInput.style.zIndex = 1; render(); });
-  toInput.addEventListener("input", () => { toInput.style.zIndex = 2; fromInput.style.zIndex = 1; render(); });
+  fromInput.addEventListener("input", () => { fromInput.style.zIndex = 2; toInput.style.zIndex = 1; changed(); });
+  toInput.addEventListener("input", () => { toInput.style.zIndex = 2; fromInput.style.zIndex = 1; changed(); });
 
   chips.forEach((chip) => chip.addEventListener("click", () => {
     fromInput.value = chip.dataset.from;
     toInput.value = chip.dataset.to;
-    render();
+    changed();
   }));
 
-  ratingInput.addEventListener("input", render);
+  ratingInput.addEventListener("input", changed);
   ratingChips.forEach((chip) => chip.addEventListener("click", () => {
     ratingInput.value = chip.dataset.rating;
-    render();
+    changed();
   }));
 
   render();
   return filters;
 }
 
-/* ---------- Ruleta ---------- */
+const filterQuery = ({ from, to, rating }) => `desde=${from}&hasta=${to}&nota=${rating}`;
 
-function setupRoulette() {
+/* ---------- Al azar ---------- */
+
+function setupRandomizer() {
   const picker = document.getElementById("picker");
-  if (!picker) return;
-  const getFilters = setupPicker(picker);
+  if (!picker || document.getElementById("wheel-panel")) return;
   const button = document.getElementById("spin");
+  const getFilters = setupPicker(picker, { button });
   const result = document.getElementById("result");
   const template = document.getElementById("episode-template");
 
   async function spin() {
-    const { from, to, rating } = getFilters();
     button.disabled = true;
     button.classList.add("is-spinning");
     const minDelay = new Promise((r) => setTimeout(r, 650));
     try {
-      const resp = await fetch(`/api/aleatorio?desde=${from}&hasta=${to}&nota=${rating}`);
+      const resp = await fetch(`/api/aleatorio?${filterQuery(getFilters())}`);
       const data = await resp.json();
       await minDelay;
       if (!resp.ok) throw new Error(data.error || "Error al buscar un capítulo");
@@ -199,6 +209,217 @@ function renderEpisode(template, ep) {
   return node;
 }
 
+/* ---------- Ruleta ---------- */
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const WHEEL = {
+  radius: 290,      // borde de la rueda (viewBox de -300 a 300)
+  imageInner: 200,  // la captura ocupa la parte exterior de cada pala
+  textStart: 84,    // el texto va del botón central hasta la captura
+  textEnd: 194,
+  colors: ["#ffd90f", "#5db8f2", "#ff7eb6", "#fffdf3"],
+  spinMs: 5200,
+};
+
+function svgEl(tag, attrs = {}, text) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+// Pala apuntando hacia arriba (ángulos medidos en sentido horario desde arriba).
+function wedgePath(count) {
+  const r = WHEEL.radius;
+  if (count === 1) return `M0 ${-r}A${r} ${r} 0 1 1 0 ${r}A${r} ${r} 0 1 1 0 ${-r}Z`;
+  const half = (Math.PI / count);
+  const x = r * Math.sin(half);
+  const y = -r * Math.cos(half);
+  return `M0 0L${-x} ${y}A${r} ${r} 0 0 1 ${x} ${y}Z`;
+}
+
+// Recorta el título con "…" para que no invada la captura.
+function fitText(el, maxWidth) {
+  const full = el.textContent;
+  if (el.getComputedTextLength() <= maxWidth) return;
+  let len = full.length;
+  while (len > 1) {
+    el.textContent = full.slice(0, --len).trimEnd() + "…";
+    if (el.getComputedTextLength() <= maxWidth) return;
+  }
+}
+
+function setupWheel() {
+  const panel = document.getElementById("wheel-panel");
+  if (!panel) return;
+  const svg = document.getElementById("wheel");
+  const hub = document.getElementById("wheel-hub");
+  const spinButton = document.getElementById("spin");
+  const newButton = document.getElementById("new-wheel");
+  const status = document.getElementById("wheel-status");
+  const result = document.getElementById("result");
+  const template = document.getElementById("episode-template");
+
+  let episodes = [];
+  let rotation = 0;
+  let spinning = false;
+  let pendingGenerate = false;
+  let request = 0;
+
+  const getFilters = setupPicker(document.getElementById("picker"), { button: newButton, onChange: generate });
+
+  function setBusy(busy) {
+    spinning = busy;
+    spinButton.disabled = busy || !episodes.length;
+    hub.disabled = spinButton.disabled;
+    spinButton.classList.toggle("is-spinning", busy);
+  }
+
+  async function generate() {
+    if (spinning) { pendingGenerate = true; return; }
+    const filters = getFilters();
+    const id = ++request;
+    if (!filters.count) {
+      episodes = [];
+      draw();
+      status.textContent = "Ningún capítulo cumple estos filtros.";
+      return;
+    }
+    status.textContent = "Preparando la ruleta…";
+    try {
+      const resp = await fetch(`/api/ruleta?${filterQuery(filters)}`);
+      const data = await resp.json();
+      if (id !== request) return; // llegó otra petición más reciente
+      if (!resp.ok) throw new Error(data.error || "No se pudo preparar la ruleta");
+      episodes = data;
+      draw();
+      status.textContent = episodes.length === 1
+        ? "Solo hay 1 capítulo con estos filtros."
+        : `${episodes.length} capítulos en la ruleta. ¡Gírala!`;
+    } catch (err) {
+      if (id === request) status.textContent = `¡D'oh! ${err.message}`;
+    }
+  }
+
+  function draw() {
+    // Vuelve a la posición inicial sin animación.
+    svg.style.transition = "none";
+    rotation = 0;
+    svg.style.transform = "rotate(0deg)";
+    svg.classList.remove("has-winner");
+    svg.replaceChildren();
+    setBusy(false);
+
+    const count = episodes.length;
+    if (!count) return;
+    const step = 360 / count;
+    const shape = wedgePath(count);
+    const clip = svgEl("clipPath", { id: "wedge-clip" });
+    clip.append(svgEl("path", { d: shape }));
+    const defs = svgEl("defs");
+    defs.append(clip);
+    svg.append(defs, svgEl("circle", { r: WHEEL.radius, class: "wheel-base" }));
+
+    const titles = [];
+    episodes.forEach((ep, i) => {
+      // Si la última pala repetiría el color de la primera (quedarían juntas), se cambia.
+      let color = WHEEL.colors[i % WHEEL.colors.length];
+      if (i === count - 1 && i % WHEEL.colors.length === 0 && count > 1) color = WHEEL.colors[2];
+      const g = svgEl("g", { class: "wedge", "data-index": i, transform: `rotate(${(i + 0.5) * step})` });
+      g.append(svgEl("path", { d: shape, fill: color }));
+      if (ep.thumb) {
+        g.append(svgEl("image", {
+          href: ep.thumb,
+          x: -80, y: -WHEEL.radius, width: 160, height: WHEEL.radius - WHEEL.imageInner,
+          preserveAspectRatio: "xMidYMid slice",
+          "clip-path": "url(#wedge-clip)",
+        }));
+      }
+      // Texto a lo largo del radio, del centro hacia fuera.
+      const text = svgEl("g", { transform: "rotate(-90)", class: "wedge-text" });
+      text.append(svgEl("text", { x: WHEEL.textStart, y: -1, class: "wedge-code" }, `T${ep.season} · E${ep.number}`));
+      const title = svgEl("text", { x: WHEEL.textStart, y: 11, class: "wedge-title" }, ep.title);
+      text.append(title);
+      titles.push(title);
+      g.append(text, svgEl("path", { d: shape, class: "wedge-outline" }));
+      svg.append(g);
+    });
+
+    svg.append(
+      svgEl("circle", { r: WHEEL.imageInner, class: "wheel-ring-inner" }),
+      svgEl("circle", { r: WHEEL.radius, class: "wheel-ring" }),
+    );
+    // Tachuelas en el borde, entre pala y pala.
+    for (let i = 0; i < count && count > 1; i++) {
+      const a = (i * step * Math.PI) / 180;
+      svg.append(svgEl("circle", {
+        cx: WHEEL.radius * Math.sin(a), cy: -WHEEL.radius * Math.cos(a), r: 7, class: "wheel-peg",
+      }));
+    }
+    document.fonts.ready.then(() => titles.forEach((t) => fitText(t, WHEEL.textEnd - WHEEL.textStart)));
+  }
+
+  function spin() {
+    if (spinning || !episodes.length) return;
+    setBusy(true);
+    svg.classList.remove("has-winner");
+    svg.querySelector(".wedge.is-winner")?.classList.remove("is-winner");
+
+    // Se elige el ganador y se calcula el giro para que quede bajo el puntero.
+    const count = episodes.length;
+    const step = 360 / count;
+    const winner = Math.floor(Math.random() * count);
+    const jitter = (Math.random() - 0.5) * step * 0.7;
+    const target = (((-(winner + 0.5) * step + jitter) % 360) + 360) % 360;
+    const current = ((rotation % 360) + 360) % 360;
+    rotation += 360 * 6 + ((target - current + 360) % 360);
+
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const duration = reduced ? 0 : WHEEL.spinMs;
+    svg.getBoundingClientRect(); // aplica el estado actual antes de animar
+    svg.style.transition = reduced ? "none" : `transform ${duration}ms cubic-bezier(.12, .62, .08, 1)`;
+    svg.style.transform = `rotate(${rotation}deg)`;
+    status.textContent = "Girando…";
+    setTimeout(() => finish(winner), duration + 80);
+  }
+
+  async function finish(index) {
+    const ep = episodes[index];
+    const wedge = svg.querySelector(`.wedge[data-index="${index}"]`);
+    wedge.classList.add("is-winner");
+    svg.insertBefore(wedge, svg.querySelector(".wheel-ring-inner")); // por encima de las demás palas
+    svg.classList.add("has-winner");
+    status.textContent = `¡Ha salido «${ep.title}» (T${ep.season} · E${ep.number})!`;
+    setBusy(false);
+
+    try {
+      const resp = await fetch(`/api/capitulo/${ep.season}/${ep.number}`);
+      if (!resp.ok) throw new Error("No se pudo cargar el capítulo");
+      result.replaceChildren(renderEpisode(template, await resp.json()));
+      result.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      result.replaceChildren(Object.assign(document.createElement("p"), {
+        className: "panel", textContent: `¡D'oh! ${err.message}`,
+      }));
+    }
+    if (pendingGenerate) {
+      pendingGenerate = false;
+      generate();
+    }
+  }
+
+  spinButton.addEventListener("click", spin);
+  hub.addEventListener("click", spin);
+  newButton.addEventListener("click", generate);
+  result.addEventListener("click", (e) => {
+    if (e.target.closest("[data-action=respin]")) {
+      panel.scrollIntoView({ behavior: "smooth" });
+      spin();
+    }
+  });
+  generate();
+}
+
 /* ---------- Galería de capturas ---------- */
 
 document.addEventListener("click", (e) => {
@@ -235,5 +456,6 @@ function setupSearch() {
   });
 }
 
-setupRoulette();
+setupRandomizer();
+setupWheel();
 setupSearch();

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Ruleta · Simpson Randomizer{% endblock %}
+
+{% block content %}
+<section class="panel picker" id="picker"
+         data-first="{{ first_season }}" data-last="{{ last_season }}"
+         data-from="{{ season_from }}" data-to="{{ season_to }}">
+  {% include "_filters.html" %}
+
+  <button type="button" class="btn btn-ghost btn-block" id="new-wheel">Nueva ruleta con estos filtros</button>
+</section>
+
+<section class="panel wheel-panel" id="wheel-panel" data-size="{{ wheel_size }}">
+  <div class="wheel-wrap">
+    <svg class="wheel-pointer" viewBox="0 0 40 52" aria-hidden="true">
+      <path d="M4 4H36L20 46Z" fill="#f2632a" stroke="#1f1a17" stroke-width="4" stroke-linejoin="round"/>
+    </svg>
+    <svg class="wheel" id="wheel" viewBox="-300 -300 600 600" role="img" aria-label="Ruleta de capítulos"></svg>
+    <button type="button" class="wheel-hub" id="wheel-hub" aria-label="Girar la ruleta">
+      <img src="{{ url_for('static', filename='img/donut.svg') }}" alt="">
+    </button>
+  </div>
+
+  <p class="wheel-status" id="wheel-status" aria-live="polite"></p>
+
+  <button type="button" class="btn-spin" id="spin">
+    <img src="{{ url_for('static', filename='img/donut.svg') }}" alt="" width="44" height="44">
+    <span>¡Girar!</span>
+  </button>
+</section>
+
+<section id="result" class="result" aria-live="polite"></section>
+
+{% include "_episode_template.html" %}
+{% endblock %}

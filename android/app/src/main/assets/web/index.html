@@ -36,46 +36,51 @@
       <span>Simpson Randomizer</span>
     </a>
     <nav class="nav">
-      <a href="#/" data-nav="ruleta">Ruleta</a>
+      <a href="#/" data-nav="azar">Al azar</a>
+      <a href="#/ruleta" data-nav="ruleta">Ruleta</a>
       <a href="#/capitulos" data-nav="capitulos">Todos los capítulos</a>
     </nav>
   </header>
 
   <main class="page">
-    <!-- Ruleta -->
-    <div id="view-ruleta" class="view">
-      <section class="panel picker" id="picker">
-        <div class="picker-head">
-          <h2>Temporadas</h2>
-          <output class="range-label" id="range-label" aria-live="polite"></output>
-        </div>
+    <!-- Al azar -->
+    <div id="view-azar" class="view">
+      <section class="panel picker">
+        <div data-filters-slot>
+          <div id="filters">
+          <div class="picker-head">
+            <h2>Temporadas</h2>
+            <output class="range-label" id="range-label" aria-live="polite"></output>
+          </div>
 
-        <div class="dual-range">
-          <div class="dual-range-track"><div class="dual-range-fill" id="range-fill"></div></div>
-          <input type="range" id="season-from" aria-label="Desde la temporada">
-          <input type="range" id="season-to" aria-label="Hasta la temporada">
-        </div>
-
-        <div class="presets" id="season-presets" role="group" aria-label="Rangos rápidos"></div>
-
-        <details class="rating-filter" id="rating-filter">
-          <summary class="picker-head">
-            <h2>Nota mínima</h2><span class="chevron" aria-hidden="true"></span>
-            <output class="range-label" id="rating-label" aria-live="polite">Cualquiera</output>
-          </summary>
           <div class="dual-range">
-            <div class="dual-range-track"><div class="dual-range-fill" id="rating-fill"></div></div>
-            <input type="range" id="min-rating" min="5" step="0.1" value="5" aria-label="Nota mínima del capítulo">
+            <div class="dual-range-track"><div class="dual-range-fill" id="range-fill"></div></div>
+            <input type="range" id="season-from" aria-label="Desde la temporada">
+            <input type="range" id="season-to" aria-label="Hasta la temporada">
           </div>
-          <div class="presets" id="rating-presets" role="group" aria-label="Notas rápidas">
-            <button type="button" class="chip" data-rating="5">Cualquiera</button>
-            <button type="button" class="chip" data-rating="7">★ 7 o más</button>
-            <button type="button" class="chip" data-rating="7.5">★ 7,5 o más</button>
-            <button type="button" class="chip" data-rating="8">★ 8 o más</button>
-          </div>
-        </details>
 
-        <p class="match-count" id="match-count" aria-live="polite"></p>
+          <div class="presets" id="season-presets" role="group" aria-label="Rangos rápidos"></div>
+
+          <details class="rating-filter" id="rating-filter">
+            <summary class="picker-head">
+              <h2>Nota mínima</h2><span class="chevron" aria-hidden="true"></span>
+              <output class="range-label" id="rating-label" aria-live="polite">Cualquiera</output>
+            </summary>
+            <div class="dual-range">
+              <div class="dual-range-track"><div class="dual-range-fill" id="rating-fill"></div></div>
+              <input type="range" id="min-rating" min="5" step="0.1" value="5" aria-label="Nota mínima del capítulo">
+            </div>
+            <div class="presets" id="rating-presets" role="group" aria-label="Notas rápidas">
+              <button type="button" class="chip" data-rating="5">Cualquiera</button>
+              <button type="button" class="chip" data-rating="7">★ 7 o más</button>
+              <button type="button" class="chip" data-rating="7.5">★ 7,5 o más</button>
+              <button type="button" class="chip" data-rating="8">★ 8 o más</button>
+            </div>
+          </details>
+
+          <p class="match-count" id="match-count" aria-live="polite"></p>
+          </div>
+        </div>
 
         <button type="button" class="btn-spin" id="spin">
           <img src="img/donut.svg" alt="" width="44" height="44">
@@ -84,6 +89,35 @@
       </section>
 
       <section id="result" class="result" aria-live="polite"></section>
+    </div>
+
+    <!-- Ruleta -->
+    <div id="view-ruleta" class="view" hidden>
+      <section class="panel picker">
+        <div data-filters-slot></div>
+        <button type="button" class="btn btn-ghost btn-block" id="new-wheel">Nueva ruleta con estos filtros</button>
+      </section>
+
+      <section class="panel wheel-panel" id="wheel-panel">
+        <div class="wheel-wrap">
+          <svg class="wheel-pointer" viewBox="0 0 40 52" aria-hidden="true">
+            <path d="M4 4H36L20 46Z" fill="#f2632a" stroke="#1f1a17" stroke-width="4" stroke-linejoin="round"/>
+          </svg>
+          <svg class="wheel" id="wheel" viewBox="-300 -300 600 600" role="img" aria-label="Ruleta de capítulos"></svg>
+          <button type="button" class="wheel-hub" id="wheel-hub" aria-label="Girar la ruleta">
+            <img src="img/donut.svg" alt="">
+          </button>
+        </div>
+
+        <p class="wheel-status" id="wheel-status" aria-live="polite"></p>
+
+        <button type="button" class="btn-spin" id="spin-wheel">
+          <img src="img/donut.svg" alt="" width="44" height="44">
+          <span>¡Girar!</span>
+        </button>
+      </section>
+
+      <section id="wheel-result" class="result" aria-live="polite"></section>
     </div>
 
     <!-- Catálogo -->

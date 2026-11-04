@@ -63,7 +63,7 @@ También puedes añadir enlaces a mano en `data/disney_links.json`:
 
 ## App de Android
 
-La carpeta `android/` contiene una app nativa (Kotlin) que muestra la misma interfaz sin servidor: ruleta con filtros de temporada y nota, catálogo con buscador y fichas con capturas. El botón **Ver en Disney+** abre el capítulo en la app de Disney+ si está instalada.
+La carpeta `android/` contiene una app nativa (Kotlin) que muestra la misma interfaz sin servidor: capítulo al azar y ruleta (ambos con filtros de temporada y nota), catálogo con buscador y fichas con capturas. El botón **Ver en Disney+** abre el capítulo en la app de Disney+ si está instalada.
 
 Los capítulos, sinopsis, enlaces de Disney+ y direcciones de las capturas van dentro de la app (`android/app/src/main/assets/web/data/episodes.js`). Las imágenes se cargan de TMDB, así que hace falta conexión para verlas.
 

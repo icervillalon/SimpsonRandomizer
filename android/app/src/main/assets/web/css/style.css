@@ -321,6 +321,82 @@ code { font-size: .9em; background: rgba(0,0,0,.08); padding: .1em .35em; border
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---------- Ruleta ---------- */
+
+.btn-block { width: 100%; justify-content: center; }
+
+.wheel-panel {
+  max-width: 720px;
+  margin: 28px auto 0;
+  padding: 26px clamp(12px, 4vw, 32px) 28px;
+}
+
+.wheel-wrap {
+  position: relative;
+  width: min(100%, 580px);
+  aspect-ratio: 1;
+  margin: 18px auto 8px;
+  filter: drop-shadow(5px 7px 0 rgba(31, 26, 23, .85));
+}
+
+.wheel {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.wheel-base { fill: var(--paper); }
+.wheel-ring { fill: none; stroke: var(--ink); stroke-width: 10; }
+.wheel-ring-inner { fill: none; stroke: var(--ink); stroke-width: 3; }
+.wheel-peg { fill: var(--yellow); stroke: var(--ink); stroke-width: 3; }
+.wedge-outline { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+.wedge-text { pointer-events: none; }
+.wedge-code { font: 900 11px var(--font-body); fill: var(--ink); }
+.wedge-title { font: 700 10px var(--font-body); fill: var(--ink); }
+
+.wedge { transition: opacity .3s; }
+.wheel.has-winner .wedge:not(.is-winner) { opacity: .45; }
+.wedge.is-winner .wedge-outline { stroke: var(--bart); stroke-width: 8; }
+
+.wheel-pointer {
+  position: absolute;
+  z-index: 2;
+  top: -4.5%;
+  left: 50%;
+  width: 8%;
+  transform: translateX(-50%);
+}
+
+.wheel-hub {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: 22%;
+  aspect-ratio: 1;
+  padding: 3%;
+  transform: translate(-50%, -50%);
+  border: var(--border);
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 4px 0 var(--ink);
+  cursor: pointer;
+  transition: transform .15s;
+}
+.wheel-hub img { width: 100%; height: 100%; transition: transform .4s; }
+.wheel-hub:hover img { transform: rotate(90deg); }
+.wheel-hub:active { transform: translate(-50%, -46%); box-shadow: 0 1px 0 var(--ink); }
+.wheel-hub:disabled { cursor: progress; }
+
+.wheel-status {
+  min-height: 1.5em;
+  margin: 18px 0 16px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
 /* ---------- Ficha de capítulo ---------- */
 
 .result { max-width: 1100px; margin: 32px auto 0; }

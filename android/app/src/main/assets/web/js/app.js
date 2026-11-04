@@ -1,4 +1,5 @@
-// Simpson Randomizer para Android: la misma app que la web, pero sin servidor.
+// Simpson Randomizer para Android: la misma app que la web (al azar, ruleta y
+// catálogo), pero sin servidor.
 // Los datos vienen de data/episodes.js (generado con android/export_data.py).
 
 const DATA = window.SIMPSONS_DATA;
@@ -99,9 +100,12 @@ function episodeCard(ep, { headingTag = "h2", actions = [] } = {}) {
       disneyNote(ep)));
 }
 
-/* ---------- Ruleta ---------- */
+/* ---------- Filtros: temporadas y nota mínima ---------- */
 
-function setupRoulette() {
+// Un único panel de filtros para «Al azar» y la ruleta. `onRender` recibe los
+// filtros cada vez que se pintan; `onChange` avisa, con un pequeño retardo,
+// cuando el usuario cambia alguno.
+function setupFilters({ onRender, onChange }) {
   const fromInput = document.getElementById("season-from");
   const toInput = document.getElementById("season-to");
   const label = document.getElementById("range-label");
@@ -112,10 +116,6 @@ function setupRoulette() {
   const ratingFill = document.getElementById("rating-fill");
   const ratingChips = document.querySelectorAll("#rating-presets .chip");
   const countLabel = document.getElementById("match-count");
-  const spinButton = document.getElementById("spin");
-  const result = document.getElementById("result");
-
-  document.getElementById("total-episodes").textContent = EPISODES.length;
 
   for (const input of [fromInput, toInput]) {
     input.min = FIRST_SEASON;
@@ -142,7 +142,7 @@ function setupRoulette() {
     chip.addEventListener("click", () => {
       fromInput.value = from;
       toInput.value = to;
-      render();
+      changed();
     });
     return chip;
   });
@@ -190,21 +190,38 @@ function setupRoulette() {
     countLabel.textContent = count === 1 ? "1 capítulo posible"
       : count ? `${count} capítulos posibles` : "Ningún capítulo cumple estos filtros";
     countLabel.classList.toggle("is-empty", count === 0);
-    spinButton.disabled = count === 0;
     store(STORAGE_KEY, { from, to, rating });
+    onRender(filters());
+  }
+
+  let changeTimer = null;
+  function changed() {
+    render();
+    clearTimeout(changeTimer);
+    changeTimer = setTimeout(onChange, 600);
   }
 
   // El pulgar que esté encima recibe el toque: subimos el que se ha movido.
-  fromInput.addEventListener("input", () => { fromInput.style.zIndex = 2; toInput.style.zIndex = 1; render(); });
-  toInput.addEventListener("input", () => { toInput.style.zIndex = 2; fromInput.style.zIndex = 1; render(); });
-  ratingInput.addEventListener("input", render);
+  fromInput.addEventListener("input", () => { fromInput.style.zIndex = 2; toInput.style.zIndex = 1; changed(); });
+  toInput.addEventListener("input", () => { toInput.style.zIndex = 2; fromInput.style.zIndex = 1; changed(); });
+  ratingInput.addEventListener("input", changed);
   ratingChips.forEach((chip) => chip.addEventListener("click", () => {
     ratingInput.value = chip.dataset.rating;
-    render();
+    changed();
   }));
 
+  render();
+  return filters;
+}
+
+/* ---------- Al azar ---------- */
+
+function setupRandomizer(getFilters) {
+  const spinButton = document.getElementById("spin");
+  const result = document.getElementById("result");
+
   function spin() {
-    const { pool } = filters();
+    const { pool } = getFilters();
     if (!pool.length) return;
     spinButton.disabled = true;
     spinButton.classList.add("is-spinning");
@@ -212,20 +229,221 @@ function setupRoulette() {
       const ep = pool[Math.floor(Math.random() * pool.length)];
       const again = h("button", { type: "button", className: "btn btn-ghost" }, "Otro");
       again.addEventListener("click", () => {
-        document.getElementById("picker").scrollIntoView({ behavior: "smooth" });
+        spinButton.scrollIntoView({ behavior: "smooth", block: "center" });
         spin();
       });
       result.replaceChildren(episodeCard(ep, {
         actions: [h("a", { className: "btn btn-ghost", href: episodeHref(ep) }, "Ver ficha"), again],
       }));
       result.scrollIntoView({ behavior: "smooth", block: "start" });
-      spinButton.disabled = false;
+      spinButton.disabled = !getFilters().pool.length;
       spinButton.classList.remove("is-spinning");
     }, 650);
   }
 
   spinButton.addEventListener("click", spin);
-  render();
+  return (filters) => { if (!spinButton.classList.contains("is-spinning")) spinButton.disabled = !filters.pool.length; };
+}
+
+/* ---------- Ruleta ---------- */
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const WHEEL = {
+  size: 20,         // palas de la ruleta
+  radius: 290,      // borde de la rueda (viewBox de -300 a 300)
+  imageInner: 200,  // la captura ocupa la parte exterior de cada pala
+  textStart: 84,    // el texto va del botón central hasta la captura
+  textEnd: 194,
+  colors: ["#ffd90f", "#5db8f2", "#ff7eb6", "#fffdf3"],
+  spinMs: 5200,
+};
+
+function svgEl(tag, attrs = {}, text) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+// Pala apuntando hacia arriba (ángulos medidos en sentido horario desde arriba).
+function wedgePath(count) {
+  const r = WHEEL.radius;
+  if (count === 1) return `M0 ${-r}A${r} ${r} 0 1 1 0 ${r}A${r} ${r} 0 1 1 0 ${-r}Z`;
+  const half = Math.PI / count;
+  const x = r * Math.sin(half);
+  const y = -r * Math.cos(half);
+  return `M0 0L${-x} ${y}A${r} ${r} 0 0 1 ${x} ${y}Z`;
+}
+
+// Recorta el título con "…" para que no invada la captura.
+function fitText(el, maxWidth) {
+  const full = el.textContent;
+  if (el.getComputedTextLength() <= maxWidth) return;
+  let len = full.length;
+  while (len > 1) {
+    el.textContent = full.slice(0, --len).trimEnd() + "…";
+    if (el.getComputedTextLength() <= maxWidth) return;
+  }
+}
+
+// Hasta `count` capítulos distintos al azar (Fisher-Yates parcial).
+function sample(pool, count) {
+  const copy = [...pool];
+  const n = Math.min(count, copy.length);
+  for (let i = 0; i < n; i++) {
+    const j = i + Math.floor(Math.random() * (copy.length - i));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
+
+function setupWheel(getFilters) {
+  const view = document.getElementById("view-ruleta");
+  const panel = document.getElementById("wheel-panel");
+  const svg = document.getElementById("wheel");
+  const hub = document.getElementById("wheel-hub");
+  const spinButton = document.getElementById("spin-wheel");
+  const newButton = document.getElementById("new-wheel");
+  const status = document.getElementById("wheel-status");
+  const result = document.getElementById("wheel-result");
+
+  let episodes = [];
+  let rotation = 0;
+  let spinning = false;
+  let stale = true; // hay que generarla de nuevo la próxima vez que se vea
+
+  function setBusy(busy) {
+    spinning = busy;
+    spinButton.disabled = busy || !episodes.length;
+    hub.disabled = spinButton.disabled;
+    spinButton.classList.toggle("is-spinning", busy);
+  }
+
+  function generate() {
+    // Los títulos solo se pueden medir con la ruleta visible.
+    if (spinning || view.hidden) { stale = true; return; }
+    stale = false;
+    const { pool } = getFilters();
+    episodes = sample(pool, WHEEL.size);
+    draw();
+    status.textContent = !episodes.length ? "Ningún capítulo cumple estos filtros."
+      : episodes.length === 1 ? "Solo hay 1 capítulo con estos filtros."
+      : `${episodes.length} capítulos en la ruleta. ¡Gírala!`;
+  }
+
+  function draw() {
+    // Vuelve a la posición inicial sin animación.
+    svg.style.transition = "none";
+    rotation = 0;
+    svg.style.transform = "rotate(0deg)";
+    svg.classList.remove("has-winner");
+    svg.replaceChildren();
+    setBusy(false);
+
+    const count = episodes.length;
+    if (!count) return;
+    const step = 360 / count;
+    const shape = wedgePath(count);
+    const clip = svgEl("clipPath", { id: "wedge-clip" });
+    clip.append(svgEl("path", { d: shape }));
+    const defs = svgEl("defs");
+    defs.append(clip);
+    svg.append(defs, svgEl("circle", { r: WHEEL.radius, class: "wheel-base" }));
+
+    const titles = [];
+    episodes.forEach((ep, i) => {
+      // Si la última pala repetiría el color de la primera (quedarían juntas), se cambia.
+      let color = WHEEL.colors[i % WHEEL.colors.length];
+      if (i === count - 1 && i % WHEEL.colors.length === 0 && count > 1) color = WHEEL.colors[2];
+      const g = svgEl("g", { class: "wedge", "data-index": i, transform: `rotate(${(i + 0.5) * step})` });
+      g.append(svgEl("path", { d: shape, fill: color }));
+      if (ep.thumb) {
+        g.append(svgEl("image", {
+          href: ep.thumb,
+          x: -80, y: -WHEEL.radius, width: 160, height: WHEEL.radius - WHEEL.imageInner,
+          preserveAspectRatio: "xMidYMid slice",
+          "clip-path": "url(#wedge-clip)",
+        }));
+      }
+      // Texto a lo largo del radio, del centro hacia fuera.
+      const text = svgEl("g", { transform: "rotate(-90)", class: "wedge-text" });
+      text.append(svgEl("text", { x: WHEEL.textStart, y: -1, class: "wedge-code" }, `T${ep.season} · E${ep.number}`));
+      const title = svgEl("text", { x: WHEEL.textStart, y: 11, class: "wedge-title" }, ep.title);
+      text.append(title);
+      titles.push(title);
+      g.append(text, svgEl("path", { d: shape, class: "wedge-outline" }));
+      svg.append(g);
+    });
+
+    svg.append(
+      svgEl("circle", { r: WHEEL.imageInner, class: "wheel-ring-inner" }),
+      svgEl("circle", { r: WHEEL.radius, class: "wheel-ring" }),
+    );
+    // Tachuelas en el borde, entre pala y pala.
+    for (let i = 0; i < count && count > 1; i++) {
+      const a = (i * step * Math.PI) / 180;
+      svg.append(svgEl("circle", {
+        cx: WHEEL.radius * Math.sin(a), cy: -WHEEL.radius * Math.cos(a), r: 7, class: "wheel-peg",
+      }));
+    }
+    document.fonts.ready.then(() => titles.forEach((t) => fitText(t, WHEEL.textEnd - WHEEL.textStart)));
+  }
+
+  function spin() {
+    if (spinning || !episodes.length) return;
+    setBusy(true);
+    svg.classList.remove("has-winner");
+    svg.querySelector(".wedge.is-winner")?.classList.remove("is-winner");
+
+    // Se elige el ganador y se calcula el giro para que quede bajo el puntero.
+    const count = episodes.length;
+    const step = 360 / count;
+    const winner = Math.floor(Math.random() * count);
+    const jitter = (Math.random() - 0.5) * step * 0.7;
+    const target = (((-(winner + 0.5) * step + jitter) % 360) + 360) % 360;
+    const current = ((rotation % 360) + 360) % 360;
+    rotation += 360 * 6 + ((target - current + 360) % 360);
+
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const duration = reduced ? 0 : WHEEL.spinMs;
+    svg.getBoundingClientRect(); // aplica el estado actual antes de animar
+    svg.style.transition = reduced ? "none" : `transform ${duration}ms cubic-bezier(.12, .62, .08, 1)`;
+    svg.style.transform = `rotate(${rotation}deg)`;
+    status.textContent = "Girando…";
+    setTimeout(() => finish(winner), duration + 80);
+  }
+
+  function finish(index) {
+    const ep = episodes[index];
+    const wedge = svg.querySelector(`.wedge[data-index="${index}"]`);
+    wedge.classList.add("is-winner");
+    svg.insertBefore(wedge, svg.querySelector(".wheel-ring-inner")); // por encima de las demás palas
+    svg.classList.add("has-winner");
+    status.textContent = `¡Ha salido «${ep.title}» (T${ep.season} · E${ep.number})!`;
+    setBusy(false);
+
+    const again = h("button", { type: "button", className: "btn btn-ghost" }, "Otro");
+    again.addEventListener("click", () => {
+      panel.scrollIntoView({ behavior: "smooth" });
+      spin();
+    });
+    result.replaceChildren(episodeCard(ep, {
+      actions: [h("a", { className: "btn btn-ghost", href: episodeHref(ep) }, "Ver ficha"), again],
+    }));
+    result.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (stale) generate();
+  }
+
+  spinButton.addEventListener("click", spin);
+  hub.addEventListener("click", spin);
+  newButton.addEventListener("click", generate);
+
+  return {
+    // Al mostrar la pantalla se genera si los filtros cambiaron mientras no se veía.
+    show() { if (stale) generate(); },
+    filtersChanged() { generate(); },
+    render(filters) { newButton.disabled = !filters.pool.length; },
+  };
 }
 
 /* ---------- Catálogo ---------- */
@@ -305,7 +523,13 @@ function showEpisode(season, number) {
   view.replaceChildren(
     h("nav", { className: "crumbs" },
       h("a", { className: "chip", href: "#/capitulos" }, `← Todos los capítulos`)),
-    episodeCard(ep, { headingTag: "h1", actions: [h("a", { className: "btn btn-ghost", href: "#/" }, "Ruleta")] }),
+    episodeCard(ep, {
+      headingTag: "h1",
+      actions: [
+        h("a", { className: "btn btn-ghost", href: "#/" }, "Al azar"),
+        h("a", { className: "btn btn-ghost", href: "#/ruleta" }, "Ruleta"),
+      ],
+    }),
     h("nav", { className: "pager" },
       prev ? h("a", { className: "btn btn-ghost", href: episodeHref(prev) }, `← ${prev.title}`) : h("span"),
       next && h("a", { className: "btn btn-ghost", href: episodeHref(next) }, `${next.title} →`)));
@@ -317,10 +541,13 @@ const scrollPositions = new Map();
 
 function route() {
   const [view, a, b] = location.hash.replace(/^#\/?/, "").split("/");
-  const name = view === "capitulos" || view === "capitulo" ? view : "ruleta";
+  const name = ["ruleta", "capitulos", "capitulo"].includes(view) ? view : "azar";
   if (name === "capitulos") buildCatalog();
   if (name === "capitulo") showEpisode(Number(a), Number(b));
   for (const el of document.querySelectorAll(".view")) el.hidden = el.id !== `view-${name}`;
+  // Los filtros se mueven a la pantalla visible (Al azar o Ruleta).
+  document.querySelector(`#view-${name} [data-filters-slot]`)?.append(document.getElementById("filters"));
+  if (name === "ruleta") wheel.show();
   document.querySelectorAll("[data-nav]").forEach((link) => {
     const active = link.dataset.nav === name || (name === "capitulo" && link.dataset.nav === "capitulos");
     if (active) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
@@ -338,5 +565,14 @@ document.querySelectorAll("[data-wobbly]").forEach(renderWobbly);
 document.getElementById("data-source").textContent =
   `Datos de ${DATA.source} (actualizados el ${DATA.exported.split("-").reverse().join("/")}).`
   + (DATA.source_name === "tmdb" ? " Este producto usa la API de TMDB, pero no está respaldado ni certificado por TMDB." : "");
-setupRoulette();
+let randomizerRender = () => {};
+let wheel = null;
+const getFilters = setupFilters({
+  onRender: (filters) => { randomizerRender(filters); wheel?.render(filters); },
+  onChange: () => wheel?.filtersChanged(),
+});
+randomizerRender = setupRandomizer(getFilters);
+wheel = setupWheel(getFilters);
+randomizerRender(getFilters());
+wheel.render(getFilters());
 route();

@@ -557,7 +557,7 @@ code { font-size: .9em; background: rgba(0,0,0,.08); padding: .1em .35em; border
 /* ---------- Responsive y accesibilidad ---------- */
 
 @media (max-width: 820px) {
-  .episode-card { grid-template-columns: 1fr; padding: 16px; }
+  .episode-card { grid-template-columns: minmax(0, 1fr); padding: 16px; }
   .catalog-tools { top: 0; position: relative; }
 }
 
@@ -565,6 +565,7 @@ code { font-size: .9em; background: rgba(0,0,0,.08); padding: .1em .35em; border
   .topbar { justify-content: center; position: relative; }
   .picker-head h2 { font-size: 1.35rem; white-space: nowrap; }
   .range-label, .rating-filter:not([open]) .range-label { font-size: 1.4rem; }
+  .meta li + li::before { display: none; }
   .pager { flex-direction: column; }
   .pager .btn { max-width: 100%; }
 }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El dónut de static/img/donut.svg, centrado en la zona segura del icono adaptativo.
+     El agujero se rellena con el azul del fondo del icono. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:translateX="22" android:translateY="22">
+        <!-- masa -->
+        <path
+            android:fillColor="#E8A65A"
+            android:pathData="M32,3a29,29 0,1 1,0 58a29,29 0,1 1,0 -58z"
+            android:strokeColor="#3B2414"
+            android:strokeWidth="3" />
+        <!-- glaseado -->
+        <path
+            android:fillColor="#FF7EB6"
+            android:pathData="M3.3,36A29,29 0,1 1,60.7 36C58,41 54,44 51,41C49,39 47,36 44,37C41,38 40,44 37,45C34,46 33,44 30,44C27,44 26,47 22,46C18,45 19,40 15,40C11,40 8,44 5,41Z"
+            android:strokeColor="#3B2414"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.5" />
+        <!-- agujero -->
+        <path
+            android:fillColor="#5DB8F2"
+            android:pathData="M22,32a10,10 0,1 0,20 0a10,10 0,1 0,-20 0z"
+            android:strokeColor="#3B2414"
+            android:strokeWidth="2.5" />
+        <!-- virutas -->
+        <path android:pathData="M15,22l4,2" android:strokeColor="#FFD90F" android:strokeLineCap="round" android:strokeWidth="2.6" />
+        <path android:pathData="M22,13l4,-1" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeWidth="2.6" />
+        <path android:pathData="M36,10l4,2" android:strokeColor="#5FB8F0" android:strokeLineCap="round" android:strokeWidth="2.6" />
+        <path android:pathData="M46,15l1,4" android:strokeColor="#7AD151" android:strokeLineCap="round" android:strokeWidth="2.6" />
+        <path android:pathData="M50,27l4,-1" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeWidth="2.6" />
+        <path android:pathData="M10,31l2,4" android:strokeColor="#5FB8F0" android:strokeLineCap="round" android:strokeWidth="2.6" />
+        <path android:pathData="M29,16l4,1" android:strokeColor="#FFD90F" android:strokeLineCap="round" android:strokeWidth="2.6" />
+        <path android:pathData="M45,30l1,3" android:strokeColor="#FFD90F" android:strokeLineCap="round" android:strokeWidth="2.6" />
+        <path android:pathData="M18,31l1,4" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeWidth="2.6" />
+    </group>
+</vector>

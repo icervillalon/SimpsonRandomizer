@@ -5,19 +5,21 @@ Aplicación web ligera en Python (Flask) que elige un capítulo aleatorio de **L
 ## Puesta en marcha
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
 cp .env.example .env        # y rellena TMDB_API_KEY (ver abajo)
-.venv/bin/python app.py
+make
 ```
 
-Abre <http://127.0.0.1:5000>.
+`make` crea el entorno virtual, instala las dependencias la primera vez y arranca la app. Abre <http://127.0.0.1:5000>.
 
-La primera carga descarga la lista de capítulos y la guarda en `data/cache/`. Se renueva sola cada semana; para forzarla:
+| Comando | Qué hace |
+| --- | --- |
+| `make` o `make run` | Arranca la app (`make run PORT=8080` para otro puerto). |
+| `make debug` | Arranca con recarga automática al cambiar el código. |
+| `make actualizar` | Vuelve a descargar la lista de capítulos. |
+| `make install` | Solo crea el entorno e instala las dependencias. |
+| `make help` | Lista los comandos. |
 
-```bash
-.venv/bin/python app.py --actualizar
-```
+La primera carga descarga la lista de capítulos y la guarda en `data/cache/`. Se renueva sola cada semana; para forzarla, `make actualizar`.
 
 ## Datos en español: clave de TMDB
 
@@ -55,6 +57,35 @@ También puedes añadir enlaces a mano en `data/disney_links.json`:
 }
 ```
 
+## App de Android
+
+La carpeta `android/` contiene una app nativa (Kotlin) que muestra la misma interfaz sin servidor: ruleta con filtros de temporada y nota, catálogo con buscador y fichas con capturas. El botón **Ver en Disney+** abre el capítulo en la app de Disney+ si está instalada.
+
+Los capítulos, sinopsis, enlaces de Disney+ y direcciones de las capturas van dentro de la app (`android/app/src/main/assets/web/data/episodes.js`). Las imágenes se cargan de TMDB, así que hace falta conexión para verlas.
+
+Para actualizar los datos de la app (por ejemplo, tras capturar más enlaces o cuando salgan capítulos nuevos):
+
+```bash
+.venv/bin/python app.py --actualizar
+.venv/bin/python android/export_data.py
+```
+
+`export_data.py` también copia `static/css/style.css` y el icono, así que los cambios de estilo de la web llegan a la app al volver a exportar.
+
+Para compilarla, abre la carpeta `android/` en Android Studio y usa *Build → Build APK(s)*, o desde terminal (con el SDK de Android y JDK 17):
+
+```bash
+cd android && ./gradlew assembleDebug
+```
+
+En este equipo el JDK está en `~/.jdks/jdk-17.0.21+9` y el SDK en `~/Android/Sdk` (indicado en `android/local.properties`), así que basta con:
+
+```bash
+cd android && JAVA_HOME=~/.jdks/jdk-17.0.21+9 ./gradlew assembleDebug
+```
+
+El APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`.
+
 ## Estructura
 
 | Archivo | Qué hace |
@@ -65,5 +96,6 @@ También puedes añadir enlaces a mano en `data/disney_links.json`:
 | `static/` | Estilos, JavaScript y el icono del dónut. |
 | `data/disney_links.json` | Enlaces directos a capítulos de Disney+. |
 | `static/simpson-randomizer.user.js` | Userscript que captura esos enlaces mientras navegas por Disney+. |
+| `android/` | App de Android; `android/export_data.py` le pasa los datos y estilos de la web. |
 
 Proyecto personal sin relación con Disney, 20th Television ni Gracie Films. Este producto usa la API de TMDB, pero no está respaldado ni certificado por TMDB.

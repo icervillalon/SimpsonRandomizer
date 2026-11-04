@@ -1,0 +1,10 @@
+/* Ajustes de la app de Android sobre style.css (copiado de la web). */
+
+/* Sin resaltado azul al tocar y sin selección de texto accidental en botones. */
+* { -webkit-tap-highlight-color: transparent; }
+button, .btn, .chip, .nav a, .brand { -webkit-user-select: none; user-select: none; }
+
+/* Los capítulos del catálogo dejan hueco para la cabecera al saltar de temporada. */
+.season { scroll-margin-top: 12px; }
+
+.view[hidden] { display: none !important; }
